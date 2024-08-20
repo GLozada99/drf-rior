@@ -1,6 +1,6 @@
 from typing import Optional, Type
 
-from rest_framework import serializers, viewsets
+from rest_framework import serializers, viewsets, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,7 +22,7 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
     The `input` is used to serialize the input data into the object related to that
     view.
     The `output` is used to serialize the output object into primitive data.
-    The `response` is as a Response OpenAPI schema. Represents the data that the
+    The `response` is used for the OpenAPI schema. Represents the data that the
     client will receive.
     The `default` will be used in all previous occurrences if they were not
     specifically defined.
@@ -169,13 +169,13 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
         """
         return request
 
-    def _output_response_pre_processor(self, response: Response) -> Response:
+    def _output_response_post_processor(self, response: Response) -> Response:
         """
-        Takes the `Response` object after the output and turns it into one that can be
-        processed by the response serializer.
+        Takes the `Response` object after the output and turns it into one that
+        complies with the response serializer.
         This method should be overriden to add functionality.
         :param response: `Response` object
-        :return: `Response` object to be processed by the response serializer.
+        :return: `Response` after being processed by the response serializer.
         """
         return response
 
@@ -185,4 +185,4 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
 
     def finalize_response(self, request, response, *args, **kwargs) -> Response:
         response = super().finalize_response(request, response, *args, **kwargs)
-        return self._output_response_pre_processor(response)
+        return self._output_response_post_processor(response)
