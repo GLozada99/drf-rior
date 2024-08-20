@@ -67,7 +67,7 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
         """
         if not (group := self.get_group()):
             return self.serializer_class
-        return getattr(group, serializer_type, "default")
+        return getattr(group, serializer_type, group.default)
 
     def get_serializer_class(self) -> Type[serializers.Serializer]:
         """
