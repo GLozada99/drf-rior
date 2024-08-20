@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "drf-rwrr"
+name = "drf-rior"
 version = "0.1.0"
 description = ""
 authors = ["Gustavo Lozada <gu.lozada9@gmail.com>"]
