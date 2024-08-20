@@ -169,11 +169,14 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
         """
         return request
 
-    def _output_response_post_processor(self, response: Response) -> Response:
+    def _output_response_post_processor(
+        self, request: Request, response: Response
+    ) -> Response:
         """
         Takes the `Response` object after the output and turns it into one that
         complies with the response serializer.
         This method should be overriden to add functionality.
+        :param request: `Request` object.
         :param response: `Response` object
         :return: `Response` after being processed by the response serializer.
         """
@@ -185,4 +188,4 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
 
     def finalize_response(self, request, response, *args, **kwargs) -> Response:
         response = super().finalize_response(request, response, *args, **kwargs)
-        return self._output_response_post_processor(response)
+        return self._output_response_post_processor(request, response)
