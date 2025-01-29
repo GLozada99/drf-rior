@@ -1,6 +1,6 @@
 from rest_framework.mixins import DestroyModelMixin
 
-from drf_rior.generics import RIORGenericViewSet
+from drf_rior.generics import GenericViewSet
 from drf_rior.mixins import (
     CreateModelMixin,
     RetrieveModelMixin,
@@ -15,6 +15,6 @@ class ModelViewSet(
     UpdateModelMixin,
     DestroyModelMixin,
     ListModelMixin,
-    RIORGenericViewSet,
+    GenericViewSet,
 ):
     pass

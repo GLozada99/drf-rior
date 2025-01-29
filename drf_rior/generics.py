@@ -1,14 +1,12 @@
 from typing import Optional, Type
 
 from rest_framework import serializers, viewsets, status
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from drf_rior.exceptions import ClassDefinitionError
 from drf_rior.utils import SerializerActionViewGroup
 
 
-class RIORGenericViewSet(viewsets.GenericViewSet):
+class GenericViewSet(viewsets.GenericViewSet):
     """
     ViewSet that allows for setting values for serializers for the following:
     - request
@@ -17,18 +15,21 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
     - response
     - default
     It uses the SerializerActionViewGroup
-    The `request` is used for the Request OpenAPI schema. Represents the data
-    received from the client.
-    The `input` is used to serialize the input data into the object related to that
+    The `request` represents the data as received from the client.
+    The `input` is used to deserialize the input data into the object related to that
     view.
     The `output` is used to serialize the output object into primitive data.
-    The `response` is used for the OpenAPI schema. Represents the data that the
-    client will receive.
+    The `response` represents the data that the client will receive back at the end.
     The `default` will be used in all previous occurrences if they were not
     specifically defined.
 
     The order of processing is:
     `request` -> `input` -> `output` -> `response`
+
+    The order for getting a serializer is:
+        1. action_serializer_group[`action`].SPECIFIC_TYPE
+        2. action_serializer_group[`action`].DEFAUlT
+        3. serializer_class attr
     """
 
     action_serializer_group: dict[str, SerializerActionViewGroup]
@@ -44,6 +45,7 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
             raise ClassDefinitionError("serializer_class must be declared.")
 
         super().__init__(**kwargs)
+        self.response = None
 
     def get_group(self) -> Optional[SerializerActionViewGroup]:
         """
@@ -72,10 +74,10 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
     def get_serializer_class(self) -> Type[serializers.Serializer]:
         """
         Gets the default serializer class to be used based on the group for the
-        action of the view.
+        action of the view. If there is no default for the action, it will use the `serializer_class` attribute
         :return: serializer class to be used.
         """
-        return self._get_serializer_class("default")
+        return self._get_serializer_class("default") or self.serializer_class
 
     def get_request_serializer_class(self) -> Type[serializers.Serializer]:
         """
@@ -159,33 +161,13 @@ class RIORGenericViewSet(viewsets.GenericViewSet):
         kwargs["context"] = self.get_serializer_context()
         return serializer_class(*args, **kwargs)
 
-    def _input_request_pre_processor(self, request: Request) -> Request:
-        """
-        Takes the initial `Request` object and turns it into one that can be
-        processed by the input serializer.
-        This method should be overriden.
-        :param request: `Request` object.
-        :return: `Request` object to be processed by the input serializer.
-        """
-        return request
-
-    def _output_response_post_processor(
-        self, request: Request, response: Response
-    ) -> Response:
-        """
-        Takes the `Response` object after the output and turns it into one that
-        complies with the response serializer.
-        This method should be overriden to add functionality.
-        :param request: `Request` object.
-        :param response: `Response` object
-        :return: `Response` after being processed by the response serializer.
-        """
-        return response
-
-    def initialize_request(self, request, *args, **kwargs) -> Request:
-        request = super().initialize_request(request, *args, **kwargs)
-        return self._input_request_pre_processor(request)
-
-    def finalize_response(self, request, response, *args, **kwargs) -> Response:
-        response = super().finalize_response(request, response, *args, **kwargs)
-        return self._output_response_post_processor(request, response)
+    def finalize_response(self, request, response, *args, **kwargs):
+        finalized_response = super().finalize_response(
+            request, response, *args, **kwargs
+        )
+        self.response = finalized_response
+        if self.response.status_code == status.HTTP_204_NO_CONTENT:
+            return finalized_response
+        response_serializer = self.get_response_serializer({"result": response.data})
+        self.response.data = response_serializer.data
+        return self.response
