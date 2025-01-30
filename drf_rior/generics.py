@@ -69,7 +69,11 @@ class GenericViewSet(viewsets.GenericViewSet):
         """
         if not (group := self.get_group()):
             return self.serializer_class
-        return getattr(group, serializer_type, group.default)
+
+        if not (serializer_class := getattr(group, serializer_type, None)):
+            return group.default
+
+        return serializer_class
 
     def get_serializer_class(self) -> Type[serializers.Serializer]:
         """
@@ -158,7 +162,7 @@ class GenericViewSet(viewsets.GenericViewSet):
         :return: serializer class to be used.
         """
         serializer_class = self.get_response_serializer_class()
-        kwargs["context"] = self.get_serializer_context()
+        kwargs["context"] = {"response": self.response, **self.get_serializer_context()}
         return serializer_class(*args, **kwargs)
 
     def finalize_response(self, request, response, *args, **kwargs):
